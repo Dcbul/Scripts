@@ -68,11 +68,20 @@ if (!(Test-Path -Path $filePath -Type Leaf -ErrorAction SilentlyContinue)) {
 }
 
 #Write handle and mesasge id in the PMDataExchange File
-$content = Get-Content $FilePath -Raw
-$content = $content -replace "EAMessage_CoordFromPegasus=\d+", "EAMessage_CoordFromPegasus=$messageId"
-$content = $content -replace "\[PegasusManager\]\s+Handle=\d+", "[PegasusManager]`r`nHandle=$Handle"
-$content | Set-Content $FilePath
+if ($content -match "EAMessage_CoordFromPegasus=") {
+    $content = $content -replace "EAMessage_CoordFromPegasus=.*", "EAMessage_CoordFromPegasus=$messageId"
+} else {
+    $content += "EAMessage_CoordFromPegasus=$messageId"
+}
 
+# Check and replace/add PegasusManager Handle
+if ($content -match "\[PegasusManager\]\s+Handle=") {
+    $content = $content -replace "\[PegasusManager\]\s+Handle=.*", "[PegasusManager]`r`nHandle=$Handle"
+} else {
+    $content += "[PegasusManager]`r`nHandle=$Handle"
+}
+
+$content | Set-Content $FilePath
 
 #Read Handle of target application
 if ($content -match '\[ExternalApp\]\s+Handle=(\d+)') {
@@ -82,9 +91,9 @@ if ($content -match '\[ExternalApp\]\s+Handle=(\d+)') {
 
 # Create coordinate structure
 $coord = New-Object -TypeName STCoord
-$coord.X = [double]::Parse($X)
-$coord.Y = [double]::Parse($Y)
-$coord.Z = [double]::Parse($Z)
+$coord.X = [double]$X
+$coord.Y = [double]$Y
+$coord.Z = [double]$Z
 
 
 # Marshal coordinate structure to unmanaged memory
